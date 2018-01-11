@@ -14,7 +14,7 @@ dfnames<-c("01-Glacial Sediments_Alaska_yr730-2000","02-Sediments_Alaska_yr1-200
 
 #CO2 data sources
 #from 
-dfnames.CO2<-c("American Samoa"="SAM", "Baja California"="BCS","Baring Head, New Zealand"="NZD","Christmas Island"="CHR", "Mauna Loa Observatory, Hawaii"="MLO", "Pt. Barrow, Alaska"="PTB", "South Pole"="SPO")
+dfnames.CO2<-c("American Samoa"="SAM", "Baja California"="BCS","Baring Head, New Zealand"="NZD","Christmas Island"="CHR", "Mauna Loa Observatory, Hawaii"="MLO", "Pt. Barrow, Alaska"="PTB", "South Pole"="SPO","Ice Core Data"="ice")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -53,7 +53,7 @@ tabPanel("CO2",
       sidebarPanel(
         selectInput("datachoice.CO2","Choose CO2 Dataset(s)",dfnames.CO2,multiple=T,selected="") , 
         radioButtons("whatplot.CO2","What to Plot?",c("Points","Smoother","Points + Smoother"),"Points") ,
-        checkboxInput("locReg_CO2","Fit A Line?",FALSE),
+        checkboxInput("locReg_CO2","Fit A Line?",FALSE),#.CO2 was throwing off the next line bc . = $ in .js
         conditionalPanel("input.locReg_CO2",
         sliderInput(inputId="rng.CO2",label=("Year Range for Line"),min=0,max=2017,value=c(0,2017),timeFormat = "%Y",step=1),
         DT::dataTableOutput("lineEq.CO2")) ),
@@ -114,7 +114,7 @@ server <- function(input, output) {
   output$lineEq<- DT::renderDataTable(
     {datasets<-unique(vals$df.rng$Dataset)
     model<-data.frame(Dataset=datasets,t(sapply(datasets,function(x){
-      coeffs<-coef(lm(Temp~Date2,data=subset(vals$df.rng,Dataset==x)))
+      coeffs<-coef(lm(Temp~Year,data=subset(vals$df.rng,Dataset==x)))
       
         })))
     names(model)[2]<-"Intercept"
@@ -136,7 +136,8 @@ server <- function(input, output) {
   observe(if(is.null(input$datachoice.CO2)){vals.CO2$usrdf_melt<-CO2;vals.CO2$df.rng<-CO2
   }else{
     vals.CO2$usrdf_melt<-subset(CO2,Dataset%in%input$datachoice.CO2)
-    vals.CO2$df.rng<-subset(vals.CO2$usrdf_melt,Yr>=input$rng.CO2[1]&Yr<=input$rng.CO2[2])
+    vals.CO2$df.rng<-subset(vals.CO2$usrdf_melt,Date2>=input$rng.CO2[1]&Date2<=input$rng.CO2[2])
+    print(vals.CO2$df.rng)
     }#end else
     )#end observe
   
@@ -147,7 +148,7 @@ server <- function(input, output) {
   
      else{ #Begin BIG ELSE
      #Global plot params (before plotting) 
-     g.CO2<-ggplot(vals.CO2$usrdf_melt,aes(x=Date2,y=CO2,col=Dataset))+theme_linedraw()+xlim(1958,2017)+theme(axis.text=element_text(size=13),axis.title=element_text(size=18,face="bold"))+ylab(expression("CO"[2]*" Concentration (ppm)"))+xlab("Year")#+geom_hline(yintercept=0,col="gray60",linetype="dashed")+annotate("text",x=2,y=0.2,label="2k Year Average Temp",col="gray60",hjust=0)
+     g.CO2<-ggplot(vals.CO2$usrdf_melt,aes(x=Date2,y=CO2,col=Dataset))+theme_linedraw()+theme(axis.text=element_text(size=13),axis.title=element_text(size=18,face="bold"))+ylab(expression("CO"[2]*" Concentration (ppm)"))+xlab("Year")#+geom_hline(yintercept=0,col="gray60",linetype="dashed")+annotate("text",x=2,y=0.2,label="2k Year Average Temp",col="gray60",hjust=0)
     
   # How to Plot (Radio Buttons)
        if(input$whatplot.CO2=="Points"){
@@ -174,7 +175,7 @@ server <- function(input, output) {
       coeffs.CO2<-coef(lm(CO2~Date2,data=subset(vals.CO2$df.rng,Dataset==x)))
       
     })))
-    names(model.CO2)[2]<-"Intercept"
+    names(model.CO2)[2:3]<-c("Intercept","Slope")
     model.CO2<-format(model.CO2,digits=4,scientific=T)
     },options=list(#iDisplayLength=5, # initial number of records
                      aLengthMenu=c(5,10),# records/page options
