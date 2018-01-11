@@ -6,8 +6,10 @@
 
 library(shiny);require(ggplot2);require(reshape2);require(DT)
 temp<-read.csv("Kaufman Temp data.csv")
+temprangeyrs<-range(temp$Year,na.rm=T)
 CO2<-read.csv("Keeling CO2 data.csv")[,-13]
 CO2$my<-paste(CO2$Mn,CO2$Yr,sep="-")
+CO2rangeyrs<-range(CO2$Yr,na.rm=T)
 
 #Temperature data sources
 dfnames<-c("01-Glacial Sediments_Alaska_yr730-2000","02-Sediments_Alaska_yr1-2000","03-Tree Rings_Alaska_yr720-2000","04-Glacial Sediments_Alaska_yr460-2000","05-Ice Isotopes_Devon Island_yr1-1980","06-Glacial Sediments_Ellesmere Island_yr1-2000","07-Ice Isotopes_Baffin Island_yr1-1980","08-Glacial Sediments_Ellesmere Island_yr1-2000","09-Glacial Sediments_Baffin Island_yr980-2000","10-Glacial Sediments_Baffin Island_750-2000","11-Sediments_Greenland_yr1-1940","12-Ice Isotopes_Greenland_yr1-1980","13-Ice Isotopes_Greenland_yr1-2000","14-Ice Isotopes_Greenland_yr1-1990","15-Ice Isotopes_Greenland_yr550-1980","16-Ice Isotopes_Greenland_yr1-1990","17-Sediments_Iceland_yr1-2000","18-Tree Rings_yr1-2000","19-Glacial Sediments OC_Finland_yr1-1800","20-Glacial Sediments x-ray_Finland_yr1-1800","21-Glacial Sediments Thickness_Finland_yr1-1800","22-Tree Rings_NW Siberia_yr1-2000","23-Tree Rings_Siberia_yr1-2000","24-Overall Average")
@@ -34,7 +36,8 @@ tabsetPanel(
         radioButtons("whatplot","What to Plot?",c("Points","Smoother","Points + Smoother"),"Points") ,
         checkboxInput("locReg","Fit A Line?",FALSE),
         conditionalPanel("input.locReg",
-        sliderInput(inputId="rng",label=("Year Range for Line"),min=0,max=2017,value=c(0,2017),timeFormat = "%Y",step=1),
+        numericInput(inputId="Tmin",label=("Minimum Year for Line"),min=temprangeyrs[1],max=temprangeyrs[2],value=temprangeyrs[1],step=1,width="50%"),
+        numericInput(inputId="Tmax",label=("Maximum Year for Line"),min=temprangeyrs[1],max=temprangeyrs[2],value=temprangeyrs[2],step=1,width="50%"),
         DT::dataTableOutput("lineEq")) ),
       
       # Show a plot of the generated distribution
@@ -55,7 +58,9 @@ tabPanel("CO2",
         radioButtons("whatplot.CO2","What to Plot?",c("Points","Smoother","Points + Smoother"),"Points") ,
         checkboxInput("locReg_CO2","Fit A Line?",FALSE),#.CO2 was throwing off the next line bc . = $ in .js
         conditionalPanel("input.locReg_CO2",
-        sliderInput(inputId="rng.CO2",label=("Year Range for Line"),min=0,max=2017,value=c(0,2017),timeFormat = "%Y",step=1),
+      #  sliderInput(inputId="rng.CO2",label=("Year Range for Line"),min=0,max=2017,value=c(0,2017),timeFormat = "%Y",step=1),
+        numericInput(inputId="Cmin",label=("Minimum Year for Line"),min=CO2rangeyrs[1],max=CO2rangeyrs[2],value=CO2rangeyrs[1],step=1,width="50%"),
+        numericInput(inputId="Cmax",label=("Maximum Year for Line"),min=CO2rangeyrs[1],max=CO2rangeyrs[2],value=CO2rangeyrs[2],step=1,width="50%"),
         DT::dataTableOutput("lineEq.CO2")) ),
       
       # Show a plot of the generated distribution
@@ -80,7 +85,7 @@ server <- function(input, output) {
     vals$echo<-T
     vals$colindx<-as.numeric(sort(gsub("-(.+)","",input$datachoice)))+1 
     vals$usrdf_melt<-melt(temp[,c(1,vals$colindx)],value.name="Temp",id="Year",variable.name="Dataset" )
-    vals$df.rng<-subset(vals$usrdf_melt,Year>=input$rng[1]&Year<=input$rng[2])
+    vals$df.rng<-subset(vals$usrdf_melt,Year>=input$Tmin&Year<=input$Tmax)
     })
   
   
@@ -96,9 +101,9 @@ server <- function(input, output) {
        if(input$whatplot=="Points"){
          G<-g+geom_point()
        }else{if(input$whatplot=="Smoother"){
-         G<-g+geom_smooth()
+         G<-g+geom_smooth(method="loess")
        }else{
-         G<-g+geom_point()+geom_smooth(se=F)} } 
+         G<-g+geom_point()+geom_smooth(se=F,method="loess")} } 
      G
   
   # # Fitting a line
@@ -112,21 +117,22 @@ server <- function(input, output) {
    
   #Output data table
   output$lineEq<- DT::renderDataTable(
-    {datasets<-unique(vals$df.rng$Dataset)
+    if(input$locReg==F){data.frame()
+      }else{
+    datasets<-unique(vals$df.rng$Dataset)
     model<-data.frame(Dataset=datasets,t(sapply(datasets,function(x){
       coeffs<-coef(lm(Temp~Year,data=subset(vals$df.rng,Dataset==x)))
       
         })))
-    names(model)[2]<-"Intercept"
+    names(model)[2:3]<-c("Intercept","Slope")
     model<-format(model,digits=4,scientific=T)
     },options=list(#iDisplayLength=5, # initial number of records
-                     aLengthMenu=c(5,10),# records/page options
+                     #aLengthMenu=c(5,10),# records/page options
                      bPaginate=F,#Don't paginate
                       bLengthChange=F, # show/hide records per page dropdown
                      bFilter=F, # global search box on/off
                      bInfo=F# information on/off (how many records filtered, etc)
-                     #aoColumnDefs = list(list(sWidth="300px", aTargets=c(list(0),list(1))))    # custom column size                       
-                    ))#End RenderDataTable
+                   ))#End RenderDataTable
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   #CO2 Plot
@@ -136,7 +142,7 @@ server <- function(input, output) {
   observe(if(is.null(input$datachoice.CO2)){vals.CO2$usrdf_melt<-CO2;vals.CO2$df.rng<-CO2
   }else{
     vals.CO2$usrdf_melt<-subset(CO2,Dataset%in%input$datachoice.CO2)
-    vals.CO2$df.rng<-subset(vals.CO2$usrdf_melt,Date2>=input$rng.CO2[1]&Date2<=input$rng.CO2[2])
+    vals.CO2$df.rng<-subset(vals.CO2$usrdf_melt,Date2>=input$Cmin & Date2<=input$Cmax)
     print(vals.CO2$df.rng)
     }#end else
     )#end observe
@@ -154,9 +160,9 @@ server <- function(input, output) {
        if(input$whatplot.CO2=="Points"){
          G.CO2<-g.CO2+geom_point()
        }else{if(input$whatplot.CO2=="Smoother"){
-         G.CO2<-g.CO2+geom_smooth()
+         G.CO2<-g.CO2+geom_smooth(method="loess")
        }else{
-         G.CO2<-g.CO2+geom_point()+geom_smooth(se=F)} } 
+         G.CO2<-g.CO2+geom_point()+geom_smooth(se=F,method="loess")} } 
      G.CO2
   
   # # Fitting a line

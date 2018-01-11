@@ -5,8 +5,8 @@ account: wilkins
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 255897
-bundleId: 1171336
+bundleId: 1171364
 url: https://wilkins.shinyapps.io/seeClimate/
-when: 1515643490.04312
+when: 1515645556.75002
 asMultiple: FALSE
 asStatic: FALSE
