@@ -12,15 +12,17 @@ CO2$my<-paste(CO2$Mn,CO2$Yr,sep="-")
 CO2rangeyrs<-range(CO2$Yr,na.rm=T)
 
 #Temperature data sources
-dfnames<-c("01-Glacial Sediments_Alaska_yr730-2000","02-Sediments_Alaska_yr1-2000","03-Tree Rings_Alaska_yr720-2000","04-Glacial Sediments_Alaska_yr460-2000","05-Ice Isotopes_Devon Island_yr1-1980","06-Glacial Sediments_Ellesmere Island_yr1-2000","07-Ice Isotopes_Baffin Island_yr1-1980","08-Glacial Sediments_Ellesmere Island_yr1-2000","09-Glacial Sediments_Baffin Island_yr980-2000","10-Glacial Sediments_Baffin Island_750-2000","11-Sediments_Greenland_yr1-1940","12-Ice Isotopes_Greenland_yr1-1980","13-Ice Isotopes_Greenland_yr1-2000","14-Ice Isotopes_Greenland_yr1-1990","15-Ice Isotopes_Greenland_yr550-1980","16-Ice Isotopes_Greenland_yr1-1990","17-Sediments_Iceland_yr1-2000","18-Tree Rings_yr1-2000","19-Glacial Sediments OC_Finland_yr1-1800","20-Glacial Sediments x-ray_Finland_yr1-1800","21-Glacial Sediments Thickness_Finland_yr1-1800","22-Tree Rings_NW Siberia_yr1-2000","23-Tree Rings_Siberia_yr1-2000","24-Overall Average")
+dfnames<-c("01-Glacial Sediments_Alaska_yr 730-2000","02-Sediments_Alaska_yr 1-2000","03-Tree Rings_Alaska_yr 720-2000","04-Glacial Sediments_Alaska_yr 460-2000","05-Ice Isotopes_Devon Island_yr 1-1980","06-Glacial Sediments_Ellesmere Island_yr 1-2000","07-Ice Isotopes_Baffin Island_yr 1-1980","08-Glacial Sediments_Ellesmere Island_yr 1-2000","09-Glacial Sediments_Baffin Island_yr 980-2000","10-Glacial Sediments_Baffin Island_750-2000","11-Sediments_Greenland_yr 1-1940","12-Ice Isotopes_Greenland_yr 1-1980","13-Ice Isotopes_Greenland_yr 1-2000","14-Ice Isotopes_Greenland_yr 1-1990","15-Ice Isotopes_Greenland_yr 550-1980","16-Ice Isotopes_Greenland_yr 1-1990","17-Sediments_Iceland_yr 1-2000","18-Tree Rings_yr 1-2000","19-Glacial Sediments OC_Finland_yr 1-1800","20-Glacial Sediments x-ray_Finland_yr 1-1800","21-Glacial Sediments Thickness_Finland_yr 1-1800","22-Tree Rings_NW Siberia_yr 1-2000","23-Tree Rings_Siberia_yr 1-2000","24-Overall Average")
 
 #CO2 data sources
 #from 
-dfnames.CO2<-c("American Samoa"="SAM", "Baja California"="BCS","Baring Head, New Zealand"="NZD","Christmas Island"="CHR", "Mauna Loa Observatory, Hawaii"="MLO", "Pt. Barrow, Alaska"="PTB", "South Pole"="SPO","Ice Core Data"="ice")
+dfnames.CO2<-c("American Samoa_yr 1981-2017"="SAM", "Baja California_yr 1997-2009"="BCS","Baring Head, New Zealand_yr 1977-2017"="NZD","Christmas Island_yr 1974-2015"="CHR", "Mauna Loa Observatory, Hawaii_yr 1958-2017"="MLO", "Pt. Barrow, Alaska_yr 1974-2017"="PTB", "South Pole_yr 1957-2016"="SPO","Ice Core Data_yr 13-1957"="ice")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-   
+  
+  #tags$head(tags$style(type="text/css","#map img {max-width: 400%")), 
+  
    # Application title
   titlePanel(windowTitle="SeeClimate",h1("SeeClimate: Exploring Long-Term Climate Change Datasets",style="font-family: 'Courier New';color: #444444;")),
   p("Choose a dataset and start exploring!",style="font-family: 'Courier New';color: #444444;"),
@@ -67,7 +69,7 @@ tabPanel("CO2",
       mainPanel(fluidRow(
       plotOutput("CO2graf"),
       HTML("<br><br>"),
-      column(8,imageOutput("map"))
+      column(3,imageOutput("map"))
       ))
    )#end sidebarLayout
   )#end tabPanel
@@ -180,7 +182,8 @@ server <- function(input, output) {
   output$lineEq.CO2<- DT::renderDataTable(
     {datasets.CO2<-unique(vals.CO2$df.rng$Dataset)
     model.CO2<-data.frame(Dataset=datasets.CO2,t(sapply(datasets.CO2,function(x){
-      coeffs.CO2<-coef(lm(CO2~Date2,data=subset(vals.CO2$df.rng,Dataset==x)))
+      coeffs.CO2<-coef(lm(CO2~Date2,data=subset(vals.CO2$df.rng,Dataset==x),na.action="na.omit"))
+     
       
     })))
     names(model.CO2)[2:3]<-c("Intercept","Slope")
@@ -193,7 +196,7 @@ server <- function(input, output) {
                      bInfo=F# information on/off (how many records filtered, etc)
                      #aoColumnDefs = list(list(sWidth="300px", aTargets=c(list(0),list(1))))    # custom column size                       
                     ))
-  output$map<-renderImage({return(list(src="images/seeClimate_map.jpg", filetype = "image/jpeg",alt="Map of CO2 logger sites") )},deleteFile = F)
+  output$map<-renderImage({return(list(src="images/SeeClimate_map.jpg", filetype = "image/jpeg",alt="Map of CO2 logger sites") )},deleteFile = F)
   
 }#End Server
 
