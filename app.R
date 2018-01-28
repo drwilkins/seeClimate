@@ -65,7 +65,9 @@ tabPanel("CO2",
       
       # Show a plot of the generated distribution
       mainPanel(fluidRow(
-      plotOutput("CO2graf")
+      plotOutput("CO2graf"),
+      HTML("<br><br>"),
+      column(8,imageOutput("map"))
       ))
    )#end sidebarLayout
   )#end tabPanel
@@ -95,7 +97,7 @@ server <- function(input, output) {
   
      else{ #Begin BIG ELSE
      #Global plot params (before plotting) 
-     g<-ggplot(vals$usrdf_melt,aes(x=Year,y=Temp,col=Dataset))+theme_linedraw()+xlim(0,2000)+theme(axis.text=element_text(size=13),axis.title=element_text(size=18,face="bold"))+ylab("Relative Temperature (ºC)")+geom_hline(yintercept=0,col="gray60",linetype="dashed")+annotate("text",x=2,y=0.2,label="2k Year Average Temp",col="gray60",hjust=0)
+     g<-ggplot(vals$usrdf_melt,aes(x=Year,y=Temp,col=Dataset))+theme_linedraw()+xlim(0,2000)+theme(axis.text=element_text(size=13),axis.title=element_text(size=18,face="bold"))+ylab("Temperature Anomoly (ºC)")+geom_hline(yintercept=0,col="gray60",linetype="dashed")+annotate("text",x=2,y=0.15,label="Average Temp for 980-1800",col="gray60",hjust=0)
     
   # How to Plot (Radio Buttons)
        if(input$whatplot=="Points"){
@@ -191,6 +193,7 @@ server <- function(input, output) {
                      bInfo=F# information on/off (how many records filtered, etc)
                      #aoColumnDefs = list(list(sWidth="300px", aTargets=c(list(0),list(1))))    # custom column size                       
                     ))
+  output$map<-renderImage({return(list(src="images/seeClimate_map.jpg", filetype = "image/jpeg",alt="Map of CO2 logger sites") )},deleteFile = F)
   
 }#End Server
 
